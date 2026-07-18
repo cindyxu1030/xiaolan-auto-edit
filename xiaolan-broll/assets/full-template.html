@@ -1,0 +1,561 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1080, height=1920" />
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <link rel="stylesheet" href="fonts/fonts.css" />
+    <style>
+      *{ margin:0; padding:0; box-sizing:border-box; }
+      :root{
+        --cream:#F5EFE2; --panel:#FBF7EE; --ink:#1F1F1D; --klein:#002FA7; --deep:#001A5E;
+        --mint:#8ACAB1; --mintdeep:#4E9278; --gray:#5A5A56; --red:#D84A3A; --rail:#C9BFA6;
+        --serif:"Noto Serif SC","Songti SC",serif;
+        --sans:"Noto Sans SC","PingFang SC",sans-serif;
+        --mono:"Consolas","JetBrains Mono",ui-monospace,monospace;
+      }
+      /* TRANSPARENT overlay — composited over the A-roll（叠在口播原片上）. Render --format mov. */
+      html,body{ width:1080px; height:1920px; overflow:hidden; background:transparent; }
+      .stage{ position:absolute; inset:0; width:1080px; height:1920px; overflow:hidden; background:transparent; }
+
+      .broll{ position:absolute; left:0; right:0; top:248px; height:520px; z-index:15; }
+      .scene{ position:absolute; inset:0; display:flex; align-items:center; justify-content:center; opacity:0; }
+      .col{ display:flex; flex-direction:column; align-items:center; }
+      .row{ display:flex; align-items:center; justify-content:center; }
+      .label{ font-family:var(--sans); font-weight:800; font-size:40px; color:var(--gray); letter-spacing:1px; }
+      .label.k{ color:var(--klein); }
+      .tag{ font-family:var(--sans); font-weight:800; font-size:34px; color:var(--klein); letter-spacing:1px; }
+      .big{ font-family:var(--serif); font-weight:900; color:var(--ink); }
+
+      /* editor card */
+      .card{ width:720px; background:var(--panel); border:3px solid #E6DEC9; border-radius:28px;
+        box-shadow:0 24px 60px rgba(31,31,29,.10); overflow:hidden; }
+      .card .bar{ height:62px; display:flex; align-items:center; gap:14px; padding:0 28px; border-bottom:3px solid #ECE4D0; }
+      .dot{ width:18px; height:18px; border-radius:50%; }
+      .card .tab{ margin-left:14px; font-family:var(--mono); font-size:30px; color:var(--gray); }
+      .card .body{ padding:36px 40px 44px; min-height:170px; }
+      .codeline{ font-family:var(--mono); font-size:42px; color:var(--ink); display:flex; align-items:center; gap:14px; position:relative; }
+      .codeline .pr{ color:var(--klein); font-weight:700; }
+      .strike{ position:absolute; left:0; top:52%; height:7px; background:var(--red); border-radius:4px; width:0; }
+
+      .looplabel{ font-family:var(--serif); font-weight:900; font-size:84px; color:var(--ink); letter-spacing:-1px; }
+      .looplabel .k{ color:var(--klein); }
+
+      /* karaoke band — top:800 is a PLACEHOLDER; set from the measured head:
+         band bottom ~35-50px above head-top (e.g. head y1088 -> top:935px height:115px) */
+      .kband{ position:absolute; left:0; right:0; top:800px; height:150px; z-index:20; }
+      .kline{ position:absolute; left:0; right:0; top:0; bottom:0; display:flex; align-items:center; justify-content:center; opacity:0; }
+      .kinner{ display:flex; align-items:flex-end; justify-content:center; flex-wrap:nowrap; white-space:nowrap;
+        transform-origin:center center; font-family:var(--sans); font-weight:800; font-size:62px; line-height:1; color:var(--ink); }
+      .kw{ display:inline-block; color:var(--ink); position:relative; will-change:transform,color; }
+      .kw.lat{ margin:0 .14em; }
+      .kw .ul{ position:absolute; left:2%; right:2%; bottom:-15px; height:8px; background:var(--mint);
+        border-radius:4px; transform:scaleX(0); transform-origin:left center; }
+
+      /* johnbucog band */
+      .jb{ position:absolute; left:0; right:0; top:382px; height:440px; z-index:25;
+        display:flex; align-items:center; justify-content:center; opacity:0; }
+      .jbhero{ font-family:var(--serif); font-weight:900; color:var(--klein); line-height:.86;
+        font-size:235px; letter-spacing:-4px; white-space:nowrap; will-change:transform; }
+      .jbhero.red{ color:var(--red); }
+      .noentry{ position:absolute; left:50%; top:50%; transform:translate(-50%,-50%); z-index:-1; opacity:.14; }
+      .goldcol{ display:flex; flex-direction:column; align-items:center; gap:14px; }
+      .goldsetup{ font-family:var(--serif); font-weight:700; font-size:62px; color:var(--ink); opacity:0; }
+      .goldhero{ font-family:var(--serif); font-weight:900; font-size:208px; color:var(--klein); line-height:.9;
+        letter-spacing:-2px; white-space:nowrap; will-change:transform; }
+    </style>
+  </head>
+  <body>
+    <div id="root" class="stage" data-composition-id="main" data-start="0" data-duration="166.9"
+         data-width="1080" data-height="1920" data-track-index="0">
+
+      <div class="broll">
+        <!-- ============ A HOOK ============ -->
+        <div class="scene" id="sA1"><!-- editor card, prompt struck -->
+          <div class="card" id="cardA">
+            <div class="bar"><span class="dot" style="background:#E0726A"></span><span class="dot" style="background:#E6C15A"></span><span class="dot" style="background:#8ACAB1"></span><span class="tab">codex</span></div>
+            <div class="body"><div class="codeline"><span class="pr">&gt;</span><span id="promptText">写一个 prompt…</span><span class="strike" id="strikeA"></span></div></div>
+          </div>
+        </div>
+        <div class="scene" id="sA2"><!-- loop hero + future -->
+          <div class="col" style="gap:26px">
+            <svg id="loopB" width="300" height="300" viewBox="0 0 200 200">
+              <path id="loopBp" d="M171 100 A71 71 0 1 1 128 34" fill="none" stroke="#002FA7" stroke-width="17" stroke-linecap="round"/>
+              <path id="loopBh" d="M171 100 L150 78 L181 70 Z" fill="#002FA7"/>
+            </svg>
+            <div class="looplabel"><span class="k">loop</span> = 未来 <span id="trendA" style="color:var(--mintdeep)">↑</span></div>
+          </div>
+        </div>
+        <div class="scene" id="sA3"><!-- burning money -->
+          <div class="col" style="gap:30px">
+            <svg id="billA" width="440" height="340" viewBox="0 0 280 220">
+              <path id="flA1" d="M120 64 C 96 44, 104 18, 124 2 C 124 22, 138 24, 134 8 C 152 24, 160 48, 142 70 C 134 80, 124 78, 120 64 Z" fill="#D84A3A"/>
+              <path id="flA2" d="M168 60 C 150 46, 156 26, 170 14 C 170 30, 180 30, 178 18 C 192 32, 196 50, 182 66 C 176 74, 170 72, 168 60 Z" fill="#E8856B"/>
+              <rect x="20" y="70" width="240" height="132" rx="14" fill="#FBF7EE" stroke="#1F1F1D" stroke-width="6"/>
+              <circle cx="140" cy="136" r="40" fill="none" stroke="#1F1F1D" stroke-width="6"/>
+              <text x="140" y="158" font-family="Noto Serif SC, serif" font-weight="900" font-size="62" fill="#1F1F1D" text-anchor="middle">¥</text>
+            </svg>
+            <div class="looplabel" style="font-size:72px">钱多到<span class="k">烧</span></div>
+          </div>
+        </div>
+        <div class="scene" id="sA4"><!-- Agent Loop setup -->
+          <div class="col" style="gap:30px">
+            <svg width="280" height="280" viewBox="0 0 200 200">
+              <path d="M171 100 A71 71 0 1 1 128 34" fill="none" stroke="#002FA7" stroke-width="17" stroke-linecap="round"/>
+              <path d="M171 100 L150 78 L181 70 Z" fill="#002FA7"/>
+            </svg>
+            <div class="looplabel" style="font-size:92px">Agent <span class="k">Loop</span></div>
+          </div>
+        </div>
+
+        <!-- ============ B INTERN ============ -->
+        <div class="scene" id="sB1"><!-- intern at desk, all night -->
+          <div class="col" style="gap:30px">
+            <svg id="deskSvg" width="520" height="360" viewBox="0 0 360 250">
+              <path id="moon" d="M300 46 a34 34 0 1 0 12 56 a40 40 0 1 1 -12 -56 Z" fill="#E6C15A" opacity="0"/>
+              <g id="clk" opacity="0"><circle cx="64" cy="60" r="34" fill="none" stroke="#5A5A56" stroke-width="6"/><line id="clkH" x1="64" y1="60" x2="64" y2="38" stroke="#1F1F1D" stroke-width="6" stroke-linecap="round"/></g>
+              <circle cx="180" cy="118" r="30" fill="#002FA7"/>
+              <path d="M136 196 a44 40 0 0 1 88 0 Z" fill="#002FA7"/>
+              <rect x="150" y="176" width="120" height="74" rx="8" fill="#001A5E"/>
+              <rect x="158" y="184" width="104" height="50" rx="4" fill="#8ACAB1" opacity=".85" id="laptopGlow"/>
+              <rect x="120" y="244" width="200" height="8" rx="4" fill="#C9BFA6"/>
+            </svg>
+            <div class="label" id="deskLabel">埋头干一整夜</div>
+          </div>
+        </div>
+        <div class="scene" id="sB2"><!-- two things: trigger + verifiable goal -->
+          <div class="col" style="gap:34px">
+            <div class="row" style="gap:90px">
+              <div class="col" style="gap:18px"><svg id="boltS" width="150" height="150" viewBox="0 0 100 100"><path id="boltP" d="M58 8 L28 56 L48 56 L42 92 L74 40 L52 40 Z" fill="none" stroke="#002FA7" stroke-width="7" stroke-linejoin="round"/></svg><div class="tag">触发</div></div>
+              <div class="big" style="font-size:80px;color:var(--gray)">+</div>
+              <div class="col" style="gap:18px"><svg id="tgtS" width="150" height="150" viewBox="0 0 100 100"><circle cx="50" cy="50" r="38" fill="none" stroke="#002FA7" stroke-width="7"/><circle cx="50" cy="50" r="20" fill="none" stroke="#002FA7" stroke-width="7"/><circle cx="50" cy="50" r="6" fill="#002FA7"/></svg><div class="tag">能验证的目标</div></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ============ C TRIGGER (3 kinds) ============ -->
+        <div class="scene" id="sC"><!-- event / schedule / manual -->
+          <div class="row" style="gap:70px">
+            <div class="col tri" id="triE" style="gap:16px"><svg width="140" height="140" viewBox="0 0 100 100"><line x1="50" y1="10" x2="50" y2="90" stroke="#C9BFA6" stroke-width="6"/><circle cx="50" cy="50" r="16" fill="#002FA7"/><circle cx="50" cy="50" r="26" fill="none" stroke="#002FA7" stroke-width="5" opacity=".5"/></svg><div class="tag">事件</div></div>
+            <div class="col tri" id="triT" style="gap:16px"><svg width="140" height="140" viewBox="0 0 100 100"><circle cx="50" cy="50" r="38" fill="none" stroke="#002FA7" stroke-width="6"/><line x1="50" y1="50" x2="50" y2="26" stroke="#002FA7" stroke-width="6" stroke-linecap="round"/><line x1="50" y1="50" x2="68" y2="58" stroke="#002FA7" stroke-width="6" stroke-linecap="round"/></svg><div class="tag">定时</div></div>
+            <div class="col tri" id="triM" style="gap:16px"><svg width="140" height="140" viewBox="0 0 100 100"><path d="M40 20 L40 58 M40 40 L40 30 a8 8 0 0 1 16 0 L56 40 M56 36 a8 8 0 0 1 16 0 L72 60 a18 18 0 0 1 -18 18 L48 78 a14 14 0 0 1 -12 -7 L26 54 a8 8 0 0 1 14 -8" fill="none" stroke="#002FA7" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/></svg><div class="tag">手动</div></div>
+          </div>
+        </div>
+
+        <!-- ============ D VERIFIABLE GOAL ============ -->
+        <div class="scene" id="sD"><!-- tests pass + AI judge -->
+          <div class="col" style="gap:30px">
+            <div class="card" style="width:560px">
+              <div class="bar"><span class="dot" style="background:#E0726A"></span><span class="dot" style="background:#E6C15A"></span><span class="dot" style="background:#8ACAB1"></span><span class="tab">tests</span></div>
+              <div class="body" style="min-height:150px;display:flex;flex-direction:column;gap:18px">
+                <div class="row tline" id="tl1" style="justify-content:flex-start;gap:18px"><svg class="tck" width="40" height="40" viewBox="0 0 40 40"><circle cx="20" cy="20" r="18" fill="#8ACAB1"/><path d="M11 20 l6 7 l12 -14" fill="none" stroke="#fff" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/></svg><span style="font-family:var(--mono);font-size:34px;color:var(--ink)">auth.test ✓</span></div>
+                <div class="row tline" id="tl2" style="justify-content:flex-start;gap:18px"><svg class="tck" width="40" height="40" viewBox="0 0 40 40"><circle cx="20" cy="20" r="18" fill="#8ACAB1"/><path d="M11 20 l6 7 l12 -14" fill="none" stroke="#fff" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/></svg><span style="font-family:var(--mono);font-size:34px;color:var(--ink)">api.test ✓</span></div>
+                <div class="row tline" id="tl3" style="justify-content:flex-start;gap:18px"><svg class="tck" width="40" height="40" viewBox="0 0 40 40"><circle cx="20" cy="20" r="18" fill="#8ACAB1"/><path d="M11 20 l6 7 l12 -14" fill="none" stroke="#fff" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/></svg><span style="font-family:var(--mono);font-size:34px;color:var(--ink)">e2e.test ✓</span></div>
+              </div>
+            </div>
+            <div class="label" id="dLabel">机器自己就能判断</div>
+          </div>
+        </div>
+
+        <!-- ============ E vs cron ============ -->
+        <div class="scene" id="sE"><!-- cron stops vs loop continues -->
+          <div class="row" style="gap:80px">
+            <div class="col" style="gap:18px"><svg width="170" height="170" viewBox="0 0 100 100"><circle cx="50" cy="50" r="36" fill="none" stroke="#5A5A56" stroke-width="6"/><line x1="50" y1="50" x2="50" y2="28" stroke="#5A5A56" stroke-width="6" stroke-linecap="round"/><line x1="50" y1="50" x2="66" y2="50" stroke="#5A5A56" stroke-width="6" stroke-linecap="round"/><line id="cronStop" x1="24" y1="24" x2="76" y2="76" stroke="#D84A3A" stroke-width="7" stroke-linecap="round" opacity="0"/></svg><div class="label">cron · 跑完就停</div></div>
+            <div class="col" style="gap:18px"><svg id="loopE" width="170" height="170" viewBox="0 0 100 100"><path d="M85 50 A35 35 0 1 1 64 18" fill="none" stroke="#002FA7" stroke-width="8" stroke-linecap="round"/><path d="M85 50 L75 40 L90 36 Z" fill="#002FA7"/><text x="48" y="60" font-family="Noto Serif SC, serif" font-weight="900" font-size="30" fill="#002FA7" text-anchor="middle">?</text></svg><div class="label k">loop · 自问达标没</div></div>
+          </div>
+        </div>
+
+        <!-- ============ F DANGER ============ -->
+        <div class="scene" id="sF"><!-- subscription draining -->
+          <div class="col" style="gap:30px">
+            <svg width="460" height="240" viewBox="0 0 320 170">
+              <rect x="20" y="50" width="250" height="80" rx="16" fill="none" stroke="#1F1F1D" stroke-width="7"/>
+              <rect x="272" y="76" width="16" height="28" rx="5" fill="#1F1F1D"/>
+              <rect id="battFill" x="32" y="62" width="226" height="56" rx="8" fill="#002FA7"/>
+              <text id="moneyDrop" x="146" y="36" font-family="Noto Serif SC, serif" font-weight="900" font-size="40" fill="#D84A3A" text-anchor="middle" opacity="0">$ $ $</text>
+            </svg>
+            <div class="label" id="fLabel">猜错每一步都在烧钱</div>
+          </div>
+        </div>
+
+        <!-- ============ G CODE REVIEW ============ -->
+        <div class="scene" id="sG"><!-- review loop, score climbs to 5, gate opens -->
+          <div class="col" style="gap:26px">
+            <div class="row" style="gap:50px">
+              <svg id="loopG" width="170" height="170" viewBox="0 0 100 100"><path d="M85 50 A35 35 0 1 1 64 18" fill="none" stroke="#002FA7" stroke-width="9" stroke-linecap="round"/><path d="M85 50 L74 39 L90 35 Z" fill="#002FA7"/></svg>
+              <div class="col" style="gap:6px"><div class="row" style="align-items:baseline;gap:8px"><span id="scoreG" class="big" style="font-size:150px;color:var(--klein);line-height:.9">3</span><span class="big" style="font-size:64px;color:var(--gray)">/5</span></div><div class="tag" style="color:var(--gray)">评审打分</div></div>
+              <svg id="gateG" width="120" height="170" viewBox="0 0 80 110"><rect x="20" y="10" width="40" height="90" rx="8" fill="none" stroke="#C9BFA6" stroke-width="7"/><path id="gateChk" d="M30 56 l10 12 l20 -24" fill="none" stroke="#8ACAB1" stroke-width="9" stroke-linecap="round" stroke-linejoin="round" opacity="0"/></svg>
+            </div>
+            <div class="label"><span id="roundG">第 1 / 5 轮</span> · 代码评审</div>
+          </div>
+        </div>
+
+        <!-- ============ H WHY WORKS (Karpathy AutoResearch) ============ -->
+        <div class="scene" id="sH"><!-- experiment counter + winners + sparkline -->
+          <div class="col" style="gap:26px">
+            <div class="row" style="align-items:baseline;gap:18px"><span id="expN" class="big" style="font-size:150px;color:var(--klein);line-height:.9">0</span><span class="big" style="font-size:54px;color:var(--gray)">个实验</span></div>
+            <svg id="sparkH" width="560" height="120" viewBox="0 0 560 120"><path id="sparkP" d="M10 108 L120 96 L210 100 L300 70 L390 78 L470 38 L550 12" fill="none" stroke="#8ACAB1" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            <div class="label">Karpathy · AutoResearch → <span style="color:var(--mintdeep)">挑出 20 个优化</span></div>
+          </div>
+        </div>
+
+        <!-- ============ I FAIL BOUNDARY (Mic) ============ -->
+        <div class="scene" id="sI"><!-- 1000+ lines too big, split -->
+          <div class="col" style="gap:28px">
+            <div class="row" id="bigBlock" style="gap:0"><svg width="320" height="220" viewBox="0 0 220 150"><rect x="10" y="10" width="200" height="130" rx="12" fill="#FBF7EE" stroke="#1F1F1D" stroke-width="6"/><line x1="32" y1="40" x2="188" y2="40" stroke="#C9BFA6" stroke-width="8" stroke-linecap="round"/><line x1="32" y1="62" x2="170" y2="62" stroke="#C9BFA6" stroke-width="8" stroke-linecap="round"/><line x1="32" y1="84" x2="188" y2="84" stroke="#C9BFA6" stroke-width="8" stroke-linecap="round"/><line x1="32" y1="106" x2="150" y2="106" stroke="#C9BFA6" stroke-width="8" stroke-linecap="round"/><circle cx="170" cy="118" r="34" fill="none" stroke="#5A5A56" stroke-width="7"/><line x1="194" y1="142" x2="214" y2="162" stroke="#5A5A56" stroke-width="8" stroke-linecap="round"/></svg></div>
+            <div class="row" style="gap:16px"><span class="big" id="lineCount" style="font-size:64px;color:var(--red)">1000+ 行</span><span class="big" style="font-size:50px;color:var(--gray)">→ 永远到不了 5 分</span></div>
+            <div class="label" id="iLabel">Mic · 失灵边界</div>
+          </div>
+        </div>
+
+        <!-- ============ J SIMPLEST ============ -->
+        <div class="scene" id="sJ"><!-- todo + 90% confidence gate -->
+          <div class="col" style="gap:24px">
+            <div class="card" style="width:600px">
+              <div class="bar"><span class="dot" style="background:#E0726A"></span><span class="dot" style="background:#E6C15A"></span><span class="dot" style="background:#8ACAB1"></span><span class="tab">to-do</span></div>
+              <div class="body" style="min-height:150px;display:flex;flex-direction:column;gap:20px">
+                <div class="row" style="justify-content:space-between"><span style="font-family:var(--mono);font-size:34px" id="td1">☐ to-do 1</span><span class="tag" id="conf1" style="color:var(--mintdeep)">90% ✓</span></div>
+                <div class="row" style="justify-content:space-between"><span style="font-family:var(--mono);font-size:34px;color:var(--gray)" id="td2">☐ to-do 2</span><span class="tag" id="conf2" style="opacity:0">90% ✓</span></div>
+              </div>
+            </div>
+            <div class="label">每步 90% 确定 · 才进下一个</div>
+          </div>
+        </div>
+
+        <!-- ============ K ENDING ============ -->
+        <div class="scene" id="sK1"><!-- target hit (standard answer) -->
+          <div class="col" style="gap:28px">
+            <svg id="tgtK" width="300" height="300" viewBox="0 0 220 220">
+              <circle cx="120" cy="110" r="84" fill="none" stroke="#002FA7" stroke-width="13"/>
+              <circle cx="120" cy="110" r="52" fill="none" stroke="#002FA7" stroke-width="13"/>
+              <circle cx="120" cy="110" r="20" fill="#002FA7"/>
+              <path id="arrK" d="M-40 110 L70 110" stroke="#1F1F1D" stroke-width="12" stroke-linecap="round"/>
+              <path id="arrKh" d="M70 110 L48 96 L48 124 Z" fill="#1F1F1D"/>
+              <g id="tgtKc" opacity="0"><circle cx="186" cy="56" r="30" fill="#8ACAB1"/><path d="M172 56 l10 11 l18 -22" fill="none" stroke="#fff" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/></g>
+            </svg>
+            <div class="label">有标准答案 · 才轮到 loop</div>
+          </div>
+        </div>
+        <div class="scene" id="sK2"><!-- human in the loop diagram -->
+          <div class="col" style="gap:26px">
+            <svg id="hil" width="340" height="340" viewBox="0 0 240 240">
+              <path id="hilC" d="M205 120 A85 85 0 1 1 120 35" fill="none" stroke="#002FA7" stroke-width="15" stroke-linecap="round"/>
+              <path d="M205 120 L184 99 L214 90 Z" fill="#002FA7"/>
+              <g id="hilP"><circle cx="120" cy="104" r="26" fill="#002FA7"/><path d="M82 162 a38 34 0 0 1 76 0 Z" fill="#002FA7"/></g>
+              <g id="hilCk" opacity="0"><circle cx="178" cy="70" r="26" fill="#8ACAB1"/><path d="M166 70 l8 9 l16 -19" fill="none" stroke="#fff" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/></g>
+              <circle id="hilDot" cx="205" cy="120" r="13" fill="#4E9278"/>
+            </svg>
+            <div class="label k">人在里面 = human in the loop</div>
+          </div>
+        </div>
+        <div class="scene" id="sK3"><!-- checkpoint rail with redo -->
+          <div class="col" style="gap:24px">
+            <svg id="rail" width="900" height="320" viewBox="0 0 900 320">
+              <path d="M70 200 H830" stroke="#C9BFA6" stroke-width="10" stroke-linecap="round"/>
+              <line x1="430" y1="150" x2="430" y2="250" stroke="#002FA7" stroke-width="10" stroke-linecap="round"/>
+              <g id="cpP"><circle cx="430" cy="92" r="30" fill="#002FA7"/><path d="M388 158 a42 38 0 0 1 84 0 Z" fill="#002FA7"/></g>
+              <circle cx="770" cy="200" r="34" fill="none" stroke="#C9BFA6" stroke-width="9" stroke-dasharray="10 12"/>
+              <text x="770" y="214" font-family="Noto Sans SC, sans-serif" font-weight="800" font-size="34" fill="#C9BFA6" text-anchor="middle">→</text>
+              <path id="backArc" d="M430 250 C 340 312, 210 300, 168 232" fill="none" stroke="#D84A3A" stroke-width="9" stroke-linecap="round"/>
+              <path id="backHd" d="M168 232 L186 236 L176 214 Z" fill="#D84A3A" opacity="0"/>
+              <g id="cpX" opacity="0"><circle cx="510" cy="120" r="28" fill="#D84A3A"/><path d="M498 108 l24 24 M522 108 l-24 24" stroke="#fff" stroke-width="7" stroke-linecap="round"/></g>
+              <circle id="tok" cx="70" cy="200" r="22" fill="#002FA7"/>
+            </svg>
+            <div class="label">每一步都让我先看 · human checkpoint</div>
+          </div>
+        </div>
+
+        <!-- ============ L CTA ============ -->
+        <div class="scene" id="sL">
+          <div class="col" style="gap:30px">
+            <div class="row" style="gap:24px"><div id="ctaBtn" style="background:#002FA7;color:#fff;font-family:var(--sans);font-weight:800;font-size:46px;padding:22px 54px;border-radius:60px">+ 关注</div><svg id="ctaDoc" width="90" height="110" viewBox="0 0 80 100"><rect x="12" y="8" width="56" height="84" rx="8" fill="#FBF7EE" stroke="#1F1F1D" stroke-width="5"/><line x1="24" y1="30" x2="56" y2="30" stroke="#8ACAB1" stroke-width="6" stroke-linecap="round"/><line x1="24" y1="46" x2="56" y2="46" stroke="#C9BFA6" stroke-width="6" stroke-linecap="round"/><line x1="24" y1="62" x2="48" y2="62" stroke="#C9BFA6" stroke-width="6" stroke-linecap="round"/></svg></div>
+            <div class="label">评论 <span class="k" style="font-weight:800">loop</span> · 领研究报告</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ============ johnbucog beats ============ -->
+      <div class="jb" id="jbWarn"><svg class="noentry" width="340" height="340" viewBox="0 0 100 100"><circle cx="50" cy="50" r="44" fill="none" stroke="#D84A3A" stroke-width="9"/><line x1="20" y1="20" x2="80" y2="80" stroke="#D84A3A" stroke-width="9" stroke-linecap="round"/></svg><span class="jbhero" id="jbWarnH">先不要碰</span></div>
+
+      <div class="jb" id="jbJudge"><span class="jbhero" id="jbJudgeH">判断</span></div>
+
+      <div class="jb" id="jbBill"><div class="goldcol"><span class="goldsetup" id="billSetup" style="color:var(--red)">即将收到</span><span class="jbhero red" id="jbBillH" style="font-size:210px">天价账单</span></div></div>
+
+      <div class="jb" id="jbGold"><div class="goldcol"><span class="goldsetup" id="goldSetup">Human in the loop is the</span><div class="col" style="gap:8px"><span class="goldhero" id="goldHero">best loop</span><svg width="640" height="44"><path id="goldUL" d="M16 24 C 200 8, 440 8, 624 22" stroke="#8ACAB1" stroke-width="13" fill="none" stroke-linecap="round"/></svg></div></div></div>
+
+      <div class="kband" id="kband"></div>
+    </div>
+
+    <script>
+      window.__timelines = window.__timelines || {};
+      const tl = gsap.timeline({ paused:true });
+
+      /* ===================== karaoke engine (w explicit | u interpolated) ===================== */
+      const PH = [
+        // A HOOK (explicit, approved)
+        {w:[["打造",0.00],["Codex",0.52,"l"],["CLI",0.80,"le"]],s:0,e:0.92},
+        {w:[["的",0.94],["Boris",1.14,"l"],["Cherny",1.42,"l"],["说",1.76]],s:0.94,e:1.92},
+        {w:[["他",2.22],["现在",2.44],["不写",2.60],["prompt",2.88,"le"],["了",3.24],["只造",3.40],["loop",3.76,"le"]],s:2.22,e:4.04},
+        {w:[["全网",4.04],["都在喊",4.72],["loop",5.08,"le"],["才是",5.38],["AI编程",5.82,"le"],["的未来",6.30]],s:4.04,e:6.70},
+        {w:[["但我",6.70],["先给你",7.08],["泼盆",7.40],["冷水",7.62,"e"]],s:6.70,e:7.94},
+        {w:[["除非",7.94],["你钱",8.34],["多到",8.64],["烧",9.06,"e"]],s:7.94,e:9.58},
+        {w:[["为什么",10.68],["呢",11.04]],s:10.68,e:11.44},
+        {w:[["我来",11.46],["应",11.64],["粉丝",11.72],["的要求",12.16]],s:11.46,e:12.66},
+        {w:[["先帮你",12.66],["搞清楚",13.08]],s:12.66,e:13.60},
+        {w:[["Agent Loop",13.58,"le"],["到底",14.14],["是什么",14.42]],s:13.58,e:14.98},
+        // B INTERN
+        {u:"loop* 就像 你招了个 很聪明的 实习生*",s:15.42,e:17.62},
+        {u:"活儿一交 你人 就走了",s:17.62,e:19.66},
+        {u:"它自己 埋头 干了 一整夜*",s:19.66,e:21.54},
+        {u:"那它 怎么知道 该干啥* 啥时候停*",s:21.54,e:24.74},
+        {u:"拆开看 就两样 东西",s:24.86,e:25.90},
+        {u:"一个 是触发*",s:25.90,e:28.20},
+        {u:"一个是 能验证的 目标*",s:28.74,e:31.46},
+        // C TRIGGER
+        {u:"触发* 就三种",s:32.00,e:33.46},
+        {u:"事件* 代码一提交 就启动",s:33.46,e:36.02},
+        {u:"定时* 每5分钟 跑一次",s:36.02,e:38.32},
+        {u:"或者 你手动 点一下",s:38.32,e:40.34},
+        // D GOAL
+        {u:"目标 必须 能验证*",s:40.73,e:42.49},
+        {u:"这是 它能转起来的 前提*",s:42.49,e:44.61},
+        {u:"要么 测试全过 这种硬标准*",s:44.61,e:46.73},
+        {u:"机器 自己 就能判断*",s:46.73,e:48.19},
+        {u:"要么 再派个 AI* 当裁判*",s:48.19,e:50.99},
+        {u:"判断 它做没做到",s:50.99,e:52.69},
+        // E vs cron (judge johnbucog at 56.17-57.19)
+        {u:"它跟 普通 cron* job* 区别 就两个字",s:52.69,e:56.10},
+        {u:"定时任务 跑完 就停",s:57.19,e:58.51},
+        {u:"loop* 每跑一轮 都回头 问自己",s:58.51,e:60.51},
+        {u:"我的标准 达到了 没有",s:60.51,e:61.79},
+        {u:"没到 就拿这轮结果 接着干*",s:61.89,e:65.01},
+        // F danger (bill johnbucog at 76.46-78.38)
+        {u:"但这个 聪明实习生 有个毛病*",s:65.04,e:67.46},
+        {u:"你需求 没写清的地方 它不会 停下来问",s:67.46,e:69.72},
+        {u:"它就会 自己猜*",s:69.72,e:70.78},
+        {u:"猜错的 每一步 都在 烧你的钱*",s:70.78,e:72.96},
+        {u:"你的订阅 几个小时 就见底*",s:72.96,e:75.10},
+        {u:"用 API* 的 恭喜你",s:75.10,e:76.40},
+        // G code review
+        {u:"但有些事 可以用 loop* 来做",s:78.38,e:80.68},
+        {u:"比如 代码评审*",s:80.68,e:81.62},
+        {u:"每次提交 评审 agent* 自动打分",s:82.08,e:84.60},
+        {u:"假设 及格 是5分",s:84.60,e:86.76},
+        {u:"低于5分* 不准上线*",s:87.34,e:89.56},
+        {u:"loop 干的活 就是 读评审意见",s:89.56,e:91.70},
+        {u:"改 重新提交 再等打分",s:91.70,e:94.52},
+        {u:"不到5分* 它就不停*",s:94.52,e:96.08},
+        {u:"为防止 无止境地跑 设个限制",s:96.08,e:98.88},
+        {u:"比如 最多 跑5轮*",s:98.88,e:100.22},
+        // H why works
+        {u:"为什么 这里 行得通",s:100.22,e:101.54},
+        {u:"因为它有 很具象的 标准*",s:101.54,e:103.74},
+        {u:"agent* 不用做 任何 抽象决策",s:103.74,e:106.30},
+        {u:"Karpathy* 的 AutoResearch* 一个道理",s:106.30,e:108.60},
+        {u:"一个文件 一个指标*",s:108.60,e:110.02},
+        {u:"限时跑 两天 700个* 实验",s:110.02,e:112.76},
+        {u:"挑出 20个* 有效优化*",s:112.76,e:114.96},
+        // I fail boundary
+        {u:"Mic* 也说了 一个 失灵边界*",s:114.96,e:117.96},
+        {u:"一次 超过 1000行* 代码",s:117.96,e:120.06},
+        {u:"评审 agent* 看不过来",s:120.06,e:121.62},
+        {u:"永远 到不了 5分*",s:121.62,e:123.30},
+        {u:"只能 强制 拆小* 再交",s:123.30,e:126.44},
+        // J simplest
+        {u:"想要 最简单的 loop*",s:126.44,e:128.44},
+        {u:"给 agent* 加一句 规则就行",s:128.44,e:130.34},
+        {u:"长任务 会拆成 一个个 to-do*",s:130.34,e:133.34},
+        {u:"你就规定 每个 to-do* 做完",s:133.48,e:135.62},
+        {u:"必须 90%* 确定 它真能跑",s:135.62,e:138.72},
+        {u:"才准 进下一个 to-do",s:138.72,e:140.80},
+        // K ending (gold johnbucog at 144.86-146.92)
+        {u:"任务 有 标准答案* 才轮到 loop*",s:140.96,e:142.98},
+        {u:"否则 只是 盲目 烧钱*",s:143.02,e:144.46},
+        {u:"最好的 循环*",s:146.92,e:147.86},
+        {u:"是 有人* 在里面的 那个",s:147.90,e:149.10},
+        {u:"我 自己的 workflow*",s:149.16,e:150.44},
+        {u:"会留 很多 human* checkpoints*",s:150.50,e:151.92},
+        {u:"就是它 每做完 一部分",s:151.98,e:153.40},
+        {u:"就给我看*",s:153.46,e:154.12},
+        {u:"我先看 是不是 我想要的*",s:154.18,e:155.60},
+        {u:"如果不是 就让它 回去重改*",s:155.66,e:157.48},
+        {u:"而不是 直接进入 下一步*",s:157.52,e:159.06},
+        // L CTA
+        {u:"评论 loop*",s:159.06,e:159.66},
+        {u:"我把 研究报告* 发你",s:159.66,e:162.14},
+        {u:"关注我* 有什么 想知道的",s:162.14,e:163.96},
+        {u:"想了解的 AI术语* 评论区 告诉我",s:163.96,e:166.50},
+      ];
+
+      function unitsOf(p){
+        if(p.w) return p.w.map(x=>({w:x[0],t:x[1],lat:/l/.test(x[2]||""),emph:/e/.test(x[2]||"")}));
+        const toks=p.u.trim().split(/\s+/), n=toks.length, span=p.e-p.s;
+        return toks.map((tk,i)=>({ w:tk.replace(/\*$/,""), t:+(p.s+span*(i/n)).toFixed(2),
+          lat:/[A-Za-z0-9]/.test(tk[0]), emph:/\*$/.test(tk) }));
+      }
+      const MAXW=910, kband=document.getElementById("kband");
+      PH.forEach((p,pi)=>{
+        const units=unitsOf(p);
+        const line=document.createElement("div"); line.className="kline"; line.style.opacity="0";
+        const inner=document.createElement("div"); inner.className="kinner";
+        units.forEach((u,wi)=>{
+          const sp=document.createElement("span"); sp.className="kw"+(u.lat?" lat":""); sp.id=`kw_${pi}_${wi}`; sp.textContent=u.w;
+          if(u.emph){ const ul=document.createElement("span"); ul.className="ul"; ul.id=`ul_${pi}_${wi}`; sp.appendChild(ul); }
+          inner.appendChild(sp);
+        });
+        line.appendChild(inner); kband.appendChild(line);
+        const w=inner.getBoundingClientRect().width;
+        if(w>MAXW) inner.style.transform=`scale(${(MAXW/w).toFixed(3)})`;
+        tl.fromTo(line,{opacity:0,y:12},{opacity:1,y:0,duration:.18,ease:"power3.out"},Math.max(0,p.s-0.04));
+        tl.to(line,{opacity:0,duration:.14,ease:"power1.in"},p.e);
+        units.forEach((u,wi)=>{
+          const id=`#kw_${pi}_${wi}`;
+          tl.set(id,{color:"var(--klein)"},u.t);
+          tl.fromTo(id,{scale:1},{scale:1.13,duration:.10,ease:"power2.out"},u.t);
+          tl.to(id,{scale:1,duration:.16,ease:"power2.inOut"},u.t+0.10);
+          if(u.emph) tl.to(`#ul_${pi}_${wi}`,{scaleX:1,duration:.24,ease:"power2.out"},u.t+0.02);
+          else { const nx=units[wi+1]; if(nx) tl.to(id,{color:"var(--ink)",duration:.18},nx.t); }
+        });
+      });
+
+      /* ===================== helpers ===================== */
+      const show=(s,at,d=.30)=>tl.fromTo(s,{opacity:0},{opacity:1,duration:d,ease:"power2.out"},at);
+      const hide=(s,at,d=.22)=>tl.to(s,{opacity:0,duration:d,ease:"power1.in"},at);
+      const breathe=(s,at)=>tl.to(s,{scale:1.02,duration:.7,yoyo:true,repeat:1,ease:"sine.inOut"},at);
+      const spin=(s,at,dur)=>tl.to(s,{rotation:360,duration:dur,ease:"none",transformOrigin:"50% 50%"},at);
+      const drawOn=(sel,at,dur=.5)=>{ const el=document.querySelector(sel); const L=el.getTotalLength(); el.style.strokeDasharray=L; el.style.strokeDashoffset=L; tl.to(sel,{strokeDashoffset:0,duration:dur,ease:"power2.out"},at); };
+      const pop=(s,at,from=.6,o="50% 50%")=>tl.fromTo(s,{opacity:0,scale:from,transformOrigin:o},{opacity:1,scale:1,duration:.3,ease:"back.out(2.1)"},at);
+      const counter=(obj,sel,to,at,dur,suffix="")=>{ tl.to(obj,{v:to,duration:dur,ease:"power1.out",onUpdate:()=>{document.querySelector(sel).textContent=Math.round(obj.v)+suffix;}},at); };
+
+      /* ===================== A HOOK ===================== */
+      show("#sA1",0.20,.34); tl.fromTo("#cardA",{y:26,scale:.96},{y:0,scale:1,duration:.4,ease:"back.out(1.4)"},0.20);
+      tl.fromTo("#promptText",{opacity:0},{opacity:1,duration:.3},0.6);
+      tl.to("#strikeA",{width:430,duration:.34,ease:"power2.out"},2.60); tl.to("#promptText",{opacity:.32,duration:.3},2.7);
+      hide("#sA1",3.55,.28);
+      // A2 loop
+      drawOn("#loopBp",3.95,.5); tl.set("#loopBh",{opacity:0},0); tl.fromTo("#loopBh",{opacity:0},{opacity:1,duration:.18},4.4);
+      show("#sA2",3.88,.3); spin("#loopB",4.5,2.0); tl.fromTo("#trendA",{opacity:0,y:18},{opacity:1,y:0,duration:.3,ease:"back.out(2)"},6.0);
+      hide("#sA2",6.40,.26);
+      // A3 money
+      show("#sA3",6.55,.3); tl.fromTo("#billA",{y:24,scale:.95},{y:0,scale:1,duration:.4,ease:"back.out(1.3)"},6.55);
+      const flkA=[[0,1],[-3,1.08],[3,.94],[-2,1.06],[2,1.0],[-3,1.08],[2,.96],[0,1.03]];
+      flkA.forEach((f,i)=>{tl.set("#flA1",{x:f[0],scaleY:f[1],transformOrigin:"50% 100%"},6.9+i*0.18);tl.set("#flA2",{x:-f[0]*.7,scaleY:2-f[1],transformOrigin:"50% 100%"},6.9+i*0.18);});
+      hide("#sA3",9.30,.24);
+      // 先不要碰 9.62-10.66
+      tl.set("#jbWarn",{opacity:1},9.62); tl.fromTo("#jbWarnH",{opacity:0,scale:1.2},{opacity:1,scale:1,duration:.16,ease:"power4.out"},9.66);
+      tl.fromTo(".noentry",{opacity:0,scale:1.3,rotation:-8},{opacity:.14,scale:1,rotation:0,duration:.4,ease:"power3.out"},9.7);
+      [[0,0],[-7,4],[6,-5],[-4,6],[6,-3],[-3,4],[3,-3],[0,0]].forEach((p,i)=>tl.set("#jbWarnH",{x:p[0],y:p[1]},9.70+i*0.04));
+      tl.set("#jbWarnH",{x:0,y:0},10.02); tl.to("#jbWarn",{opacity:0,scale:.97,duration:.12,ease:"power2.in"},10.66);
+      // A4 Agent Loop
+      show("#sA4",10.84,.3); tl.fromTo("#sA4 .col",{y:20},{y:0,duration:.4,ease:"power3.out"},10.84); breathe("#sA4 .looplabel",13.7);
+      hide("#sA4",15.10,.26);
+
+      /* ===================== B INTERN ===================== */
+      show("#sB1",15.46,.32);
+      tl.fromTo("#laptopGlow",{opacity:.3},{opacity:.85,duration:.6,yoyo:true,repeat:3,ease:"sine.inOut"},16.0);
+      pop("#moon",16.6,.5,"300px 60px"); tl.set("#clk",{opacity:1},19.66); tl.to("#clkH",{rotation:720,duration:1.6,ease:"power1.inOut",svgOrigin:"64 60"},19.7);
+      hide("#sB1",21.30,.26);
+      show("#sB2",21.50,.32);
+      pop("#boltS",24.9,.5,"50% 50%"); pop("#tgtS",26.0,.5,"50% 50%");
+      hide("#sB2",31.20,.26);
+
+      /* ===================== C TRIGGER ===================== */
+      show("#sC",32.00,.30);
+      pop("#triE",33.5,.5,"50% 50%"); pop("#triT",36.1,.5,"50% 50%"); pop("#triM",38.4,.5,"50% 50%");
+      hide("#sC",40.10,.26);
+
+      /* ===================== D GOAL ===================== */
+      show("#sD",40.73,.32); tl.fromTo("#sD .card",{y:22,scale:.97},{y:0,scale:1,duration:.4,ease:"back.out(1.3)"},40.73);
+      tl.fromTo("#tl1",{opacity:0,x:-20},{opacity:1,x:0,duration:.3,ease:"power3.out"},44.7);
+      tl.fromTo("#tl2",{opacity:0,x:-20},{opacity:1,x:0,duration:.3,ease:"power3.out"},45.4);
+      tl.fromTo("#tl3",{opacity:0,x:-20},{opacity:1,x:0,duration:.3,ease:"power3.out"},46.1);
+      hide("#sD",52.30,.26);
+      tl.set("#tl1",{opacity:0},0); tl.set("#tl2",{opacity:0},0); tl.set("#tl3",{opacity:0},0);
+
+      /* ===================== E vs cron + 判断 ===================== */
+      show("#sE",52.69,.32);
+      tl.fromTo("#cronStop",{opacity:0,scale:.6,transformOrigin:"50px 50px"},{opacity:1,scale:1,duration:.3,ease:"back.out(2)"},57.3);
+      spin("#loopE",58.6,2.4);
+      hide("#sE",55.95,.22);
+      // 判断 56.17-57.19
+      tl.set("#jbJudge",{opacity:1},56.13); tl.fromTo("#jbJudgeH",{opacity:0,scale:1.22},{opacity:1,scale:1,duration:.16,ease:"power4.out"},56.17);
+      [[0,0],[-7,4],[6,-5],[-4,5],[5,-3],[-3,4],[2,-3],[0,0]].forEach((p,i)=>tl.set("#jbJudgeH",{x:p[0],y:p[1]},56.20+i*0.035));
+      tl.set("#jbJudgeH",{x:0,y:0},56.48); breathe("#jbJudgeH",56.7);
+      tl.to("#jbJudge",{opacity:0,scale:.97,duration:.14,ease:"power2.in"},57.05);
+      show("#sE",57.25,.28);     // bring cron/loop comparison back after 判断
+      hide("#sE",64.90,.26);
+
+      /* ===================== F danger + 天价账单 ===================== */
+      show("#sF",65.04,.32);
+      tl.fromTo("#battFill",{attr:{width:226}},{attr:{width:18},duration:5.5,ease:"power1.in"},70.8);
+      tl.set("#battFill",{fill:"#D84A3A"},75.5);   // snap red at empty (no blue→red tween → avoids banned purple)
+      tl.fromTo("#moneyDrop",{opacity:0,y:-10},{opacity:1,y:6,duration:.5,yoyo:true,repeat:5,ease:"sine.in"},71.5);
+      hide("#sF",76.20,.22);
+      // 天价账单 76.46-78.38 (RED hero)
+      tl.set("#jbBill",{opacity:1},76.42); tl.fromTo("#billSetup",{opacity:0,y:12},{opacity:1,y:0,duration:.26,ease:"power3.out"},76.46);
+      tl.fromTo("#jbBillH",{opacity:0,scale:1.22},{opacity:1,scale:1,duration:.18,ease:"power4.out"},77.0);
+      [[0,0],[-8,5],[7,-6],[-5,7],[8,-4],[-4,5],[4,-4],[0,0]].forEach((p,i)=>tl.set("#jbBillH",{x:p[0],y:p[1]},77.04+i*0.04));
+      tl.set("#jbBillH",{x:0,y:0},77.36); breathe("#jbBillH",77.7);
+      tl.to("#jbBill",{opacity:0,scale:.98,duration:.16,ease:"power2.in"},78.30);
+
+      /* ===================== G code review ===================== */
+      show("#sG",78.50,.32); spin("#loopG",82.0,12.0);
+      const sc={v:3}; tl.to(sc,{v:5,duration:8,ease:"none",onUpdate:()=>{document.getElementById("scoreG").textContent=Math.round(sc.v);}},86.0);
+      const rd={v:1}; tl.to(rd,{v:5,duration:8,ease:"none",onUpdate:()=>{document.getElementById("roundG").textContent="第 "+Math.round(rd.v)+" / 5 轮";}},90.5);
+      drawOn("#gateChk",94.6,.4); tl.fromTo("#gateChk",{opacity:0},{opacity:1,duration:.2},94.6);
+      breathe("#scoreG",95.0);
+      hide("#sG",100.00,.26);
+
+      /* ===================== H why works ===================== */
+      show("#sH",100.30,.32);
+      const ex={v:0}; tl.to(ex,{v:712,duration:3.2,ease:"power1.out",onUpdate:()=>{document.getElementById("expN").textContent=Math.round(ex.v);}},110.2);
+      drawOn("#sparkP",111.6,1.2);
+      hide("#sH",114.70,.26);
+
+      /* ===================== I fail boundary ===================== */
+      show("#sI",114.96,.32);
+      tl.fromTo("#bigBlock",{scale:.9},{scale:1.0,duration:.5,ease:"back.out(1.4)"},115.0);
+      tl.fromTo("#lineCount",{opacity:0,scale:1.2},{opacity:1,scale:1,duration:.3,ease:"power4.out"},118.0);
+      tl.to("#bigBlock",{x:-8,duration:.06,yoyo:true,repeat:7,ease:"none"},121.6);
+      hide("#sI",126.20,.26);
+
+      /* ===================== J simplest ===================== */
+      show("#sJ",126.44,.32); tl.fromTo("#sJ .card",{y:22,scale:.97},{y:0,scale:1,duration:.4,ease:"back.out(1.3)"},126.44);
+      tl.fromTo("#conf1",{opacity:0,scale:.7},{opacity:1,scale:1,duration:.3,ease:"back.out(2)"},135.8);
+      tl.to("#td2",{color:"#1F1F1D",duration:.3},138.8); tl.fromTo("#conf2",{opacity:0,scale:.7},{opacity:.6,scale:1,duration:.3},139.0);
+      hide("#sJ",140.30,.26);
+
+      /* ===================== K ending ===================== */
+      show("#sK1",140.96,.32);
+      tl.fromTo("#arrK",{attr:{d:"M-40 110 L70 110"}},{attr:{d:"M20 110 L116 110"},duration:.4,ease:"power3.out"},141.5);
+      tl.fromTo("#arrKh",{x:-60,opacity:0},{x:46,opacity:1,duration:.4,ease:"power3.out"},141.5);
+      pop("#tgtKc",142.0,.6,"186px 56px");
+      hide("#sK1",144.50,.26);
+      // 金句 144.86-147.08
+      drawOn("#goldUL",146.6,.4); tl.set("#jbGold",{opacity:1},144.84);
+      tl.fromTo("#goldSetup",{opacity:0,y:14},{opacity:1,y:0,duration:.3,ease:"power3.out"},144.86);
+      tl.fromTo("#goldHero",{opacity:0,scale:1.18},{opacity:1,scale:1,duration:.18,ease:"power4.out"},146.34);
+      tl.to("#jbGold",{opacity:0,scale:.99,duration:.18,ease:"power2.in"},146.96);
+      // K2 human in the loop 147.30-149.0
+      drawOn("#hilC",147.36,.5); show("#sK2",147.30,.30);
+      spin("#hilDot",147.5,1.4); pop("#hilP",147.9,.7,"120px 120px"); pop("#hilCk",148.3,.6,"178px 70px");
+      hide("#sK2",149.00,.24);
+      // K3 checkpoint rail 149.40-159.0
+      drawOn("#backArc",156.8,.5); show("#sK3",149.40,.32);
+      tl.fromTo("#tok",{attr:{cx:70}},{attr:{cx:430},duration:3.4,ease:"power1.inOut"},149.8);
+      breathe("#cpP",154.1); pop("#cpX",155.7,.6,"510px 120px");
+      tl.to("#backHd",{opacity:1,duration:.12},157.2); tl.to("#tok",{attr:{cx:170},duration:.7,ease:"power2.inOut"},156.9);
+      tl.to("#cpX",{opacity:0,duration:.3},157.2);
+      hide("#sK3",159.00,.26);
+
+      /* ===================== L CTA ===================== */
+      show("#sL",159.20,.32);
+      tl.fromTo("#ctaBtn",{scale:.85,opacity:0},{scale:1,opacity:1,duration:.4,ease:"back.out(2)"},159.3);
+      tl.to("#ctaBtn",{scale:1.05,duration:.3,yoyo:true,repeat:3,ease:"sine.inOut"},162.0);
+      tl.fromTo("#ctaDoc",{opacity:0,x:30},{opacity:1,x:0,duration:.4,ease:"power3.out"},160.0);
+      // hold to end
+
+      window.__timelines["main"] = tl;
+    </script>
+  </body>
+</html>
