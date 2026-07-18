@@ -1,5 +1,7 @@
 # 小蓝的 AI 自动剪辑技能（xiaolan-auto-edit）
 
+中文 | [English](README.en.md)
+
 我给我的 AI 剪辑师写的「员工手册」，现在开源给你。
 
 两个技能（skill），组成一条口播视频的自动剪辑流水线：
